@@ -1,0 +1,82 @@
+import pandas as pd
+import folium
+import matplotlib.pyplot as plt
+import seaborn as sns
+import warnings
+
+# Ocultar advertencias futuras de seaborn
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
+def cargar_datos(ruta_csv):
+    """
+    Carga y limpia datos de focos de calor desde un archivo CSV.
+    """
+    df = pd.read_csv(ruta_csv)
+    
+    columnas_relevantes = [
+        "Departamento", "Provincia", "Distrito", 
+        "Nivel de Peligro", "Fecha de la toma del satélite",
+        "Coordenada Latitud", "Coordenada Longitud"
+    ]
+    
+    df = df[columnas_relevantes]  
+    df["Fecha de la toma del satélite"] = pd.to_datetime(df["Fecha de la toma del satélite"], errors='coerce')
+    df.dropna(inplace=True)
+    
+    return df
+
+def visualizar_mapa(df):
+    """
+    Genera un mapa con los focos de calor.
+    """
+    mapa = folium.Map(location=[-9.19, -75.01], zoom_start=6)  # Perú
+    
+    for _, row in df.iterrows():
+        folium.CircleMarker(
+            location=[row["Coordenada Latitud"], row["Coordenada Longitud"]],
+            radius=5,
+            color="red" if row["Nivel de Peligro"] == "Alto" else "orange",
+            fill=True,
+            fill_opacity=0.7,
+            popup=f"{row['Departamento']} - {row['Nivel de Peligro']}"
+        ).add_to(mapa)
+    
+    return mapa
+
+def graficar_tendencias(df):
+    """
+    Genera gráfico de tendencia de focos de calor por fecha.
+    """
+    df["Fecha"] = df["Fecha de la toma del satélite"].dt.date
+    plt.figure(figsize=(10,5))
+    sns.countplot(x="Fecha", data=df, palette="Reds")
+    plt.xticks(rotation=45)
+    plt.xlabel("Fecha")
+    plt.ylabel("Cantidad de Focos de Calor")
+    plt.title("Tendencia de Focos de Calor en el Tiempo")
+    plt.tight_layout()
+    plt.show()
+
+def graficar_peligrosidad(df):
+    """
+    Muestra la distribución de niveles de peligro.
+    """
+    plt.figure(figsize=(7,4))
+    sns.countplot(x="Nivel de Peligro", data=df, palette="coolwarm")
+    plt.xlabel("Nivel de Peligro")
+    plt.ylabel("Cantidad de Focos de Calor")
+    plt.title("Distribución de Niveles de Peligro")
+    plt.tight_layout()
+    plt.show()
+
+# Ruta del archivo CSV
+ruta_csv = r"C:\Users\LENOVO\Desktop\PHYTON\Focos.csv"
+
+# Ejecutar el análisis
+df_focos = cargar_datos(ruta_csv)
+mapa = visualizar_mapa(df_focos)
+graficar_tendencias(df_focos)
+graficar_peligrosidad(df_focos)
+
+# Mostrar el mapa (en Jupyter, por ejemplo, usar mapa._repr_html_())
+mapa
